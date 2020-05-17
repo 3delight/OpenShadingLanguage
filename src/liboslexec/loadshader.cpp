@@ -557,8 +557,6 @@ OSOReaderToMaster::instruction_end ()
 ShaderMaster::ref
 ShadingSystemImpl::loadshader (string_view cname)
 {
-    if (Strutil::ends_with (cname, ".oso"))
-        cname.remove_suffix (4);   // strip superfluous .oso
     if (! cname.size()) {
         error ("Attempt to load shader with empty name \"\".");
         return NULL;
@@ -577,7 +575,7 @@ ShadingSystemImpl::loadshader (string_view cname)
     // Not found in the map
     OSOReaderToMaster oso (*this);
     bool testcwd = m_searchpath_dirs.empty();  // test "." if there's no searchpath
-    std::string filename = OIIO::Filesystem::searchpath_find (name.string() + ".oso",
+    std::string filename = OIIO::Filesystem::searchpath_find (name.string(),
                                                         m_searchpath_dirs,
                                                         testcwd);
     if (filename.empty ()) {
