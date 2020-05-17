@@ -371,44 +371,12 @@ find_stdoslpath (const std::vector<std::string>& includepaths)
 
     // List of likely prefixes and suffixes, in order of preference
     std::string prefixes[] = {
-        OIIO::Sysutil::getenv("OSL_ROOT"),
-        OIIO::Sysutil::getenv("OSL_ROOT_DIR"),
-        OIIO::Sysutil::getenv("OSLHOME"),
-        myprefix,
         OIIO::Filesystem::parent_path(myprefix)
     };
     std::string suffixes[] = {
-        "/share/OSL/shaders/stdosl.h",
-        "/share/shaders/stdosl.h",
-        "/lib/OSL/include/std/stdosl.h",
-        "/lib/osl/include/std/stdosl.h",
-        "/shaders/stdosl.h" /*old*/
+        "/osl/stdosl.h"
     };
     for (auto& dir : prefixes) {
-        if (! dir.empty() && OIIO::Filesystem::is_directory(dir)) {
-            // For each prefix, check likely suffixes, in order of preference
-            for (auto& s : suffixes) {
-                if (OIIO::Filesystem::exists (dir + s))
-                    return ustring(dir + s);
-            }
-        }
-    }
-
-    // Try looking for "oslc" binary in the $PATH (in case the executable
-    // running this code is not the actual oslc), and if so, look in places
-    // relative to that.
-    std::vector<std::string> exec_path_dirs;
-    OIIO::Filesystem::searchpath_split (OIIO::Sysutil::getenv("PATH"),
-                                        exec_path_dirs, true);
-#ifdef _WIN32
-    std::string oslcbin = "oslc.exe";
-#else
-    std::string oslcbin = "oslc";
-#endif
-    oslcbin = OIIO::Filesystem::searchpath_find (oslcbin, exec_path_dirs);
-    if (oslcbin.size()) {
-        std::string dir = OIIO::Filesystem::parent_path(oslcbin);  // the bin dir of our program
-        dir = OIIO::Filesystem::parent_path(dir);  // now the parent dir
         if (! dir.empty() && OIIO::Filesystem::is_directory(dir)) {
             // For each prefix, check likely suffixes, in order of preference
             for (auto& s : suffixes) {
