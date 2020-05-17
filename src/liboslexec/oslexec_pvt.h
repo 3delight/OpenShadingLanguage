@@ -1220,16 +1220,20 @@ public:
     struct SymOverrideInfo {
         // Using bit fields to keep the data in 8 bytes in total.
         unsigned char m_valuesource: 3;
+        bool m_completely_connected: 1;
         bool m_connected_down: 1;
         bool m_lockgeom:       1;
-        int  m_arraylen:      27;
+        int  m_arraylen:      26;
         int  m_data_offset;
 
         SymOverrideInfo () : m_valuesource(Symbol::DefaultVal),
+                             m_completely_connected(false),
                              m_connected_down(false), m_lockgeom(true), m_arraylen(0), m_data_offset(0) { }
         void valuesource (Symbol::ValueSource v) { m_valuesource = v; }
         Symbol::ValueSource valuesource () const { return (Symbol::ValueSource) m_valuesource; }
         const char *valuesourcename () const { return Symbol::valuesourcename(valuesource()); }
+        bool completelyconnected () const { return m_completely_connected; }
+        void completelyconnected (bool c) { m_completely_connected = c; }
         bool connected_down () const { return m_connected_down; }
         void connected_down (bool c) { m_connected_down = c; }
         bool connected () const { return valuesource() == Symbol::ConnectedVal; }

@@ -505,6 +505,7 @@ ShaderInstance::copy_code_from_master (ShaderGroup &group)
                 if (m_instoverrides[i].arraylen())
                     si->arraylen (m_instoverrides[i].arraylen());
                 si->valuesource (m_instoverrides[i].valuesource());
+                si->completelyconnected (m_instoverrides[i].completelyconnected());
                 si->connected_down (m_instoverrides[i].connected_down());
                 si->lockgeom (m_instoverrides[i].lockgeom());
                 si->dataoffset (m_instoverrides[i].dataoffset());

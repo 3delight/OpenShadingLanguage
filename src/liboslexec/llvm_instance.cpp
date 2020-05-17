@@ -386,12 +386,14 @@ BackendLLVM::llvm_type_closure_component_ptr ()
 
 
 void
-BackendLLVM::llvm_assign_initial_value (const Symbol& sym, bool force)
+BackendLLVM::llvm_assign_initial_value (const Symbol& sym)
 {
     // Don't write over connections!  Connection values are written into
     // our layer when the earlier layer is run, as part of its code.  So
-    // we just don't need to initialize it here at all.
-    if (!force && sym.valuesource() == Symbol::ConnectedVal &&
+    // we just don't need to initialize it here at all. Unless the connection
+    // is to only some components of the value.
+    if (sym.valuesource() == Symbol::ConnectedVal &&
+        sym.completelyconnected() &&
           !sym.typespec().is_closure_based())
         return;
     if (sym.typespec().is_closure_based() && sym.symtype() == SymTypeGlobal)
@@ -950,9 +952,6 @@ BackendLLVM::build_llvm_instance (bool groupentry)
     if (llvm_has_exit_instance_block())
         ll.op_branch (m_exit_instance_block); // also sets insert point
 
-    // Track all symbols who needed 'partial' initialization
-    std::unordered_set<Symbol*> initedsyms;
-
     // Transfer all of this layer's outputs into the downstream shader's
     // inputs.
     for (int layer = this->layer()+1;  layer < group().nlayers();  ++layer) {
@@ -970,37 +969,6 @@ BackendLLVM::build_llvm_instance (bool groupentry)
 
                 Symbol *srcsym (inst()->symbol (con.src.param));
                 Symbol *dstsym (child->symbol (con.dst.param));
-
-                // Check remining connections to see if any channels of this
-                // aggregate need to be initialize.
-                if (con.dst.channel != -1 && initedsyms.count(dstsym) == 0) {
-                    initedsyms.insert(dstsym);
-                    std::bitset<32> inited(0); // Only need to be 16 (matrix4)
-                    OSL_DASSERT(dstsym->typespec().aggregate() <= inited.size());
-                    unsigned ninit = dstsym->typespec().aggregate() - 1;
-                    for (int rc = c+1;  rc < Nc && ninit;  ++rc) {
-                        const Connection &next (child->connection (rc));
-                        if (next.srclayer == this->layer()) {
-                            // Allow redundant/overwriting connections, i.e:
-                            // 1.  connect layer.value[i] connect layer.value[j]
-                            // 2.  connect layer.value connect layer.value
-                            if (child->symbol (next.dst.param) == dstsym) {
-                                if (next.dst.channel != -1) {
-                                    OSL_DASSERT(next.dst.channel < (int)inited.size());
-                                    if (!inited[next.dst.channel]) {
-                                        inited[next.dst.channel] = true;
-                                        --ninit;
-                                    }
-                                } else
-                                    ninit = 0;
-                            }
-                        }
-                    }
-                    if (ninit) {
-                        // FIXME: Init only components that are not connected
-                        llvm_assign_initial_value (*dstsym, true);
-                    }
-                }
 
                 // llvm_run_connected_layers tracks layers that have been run,
                 // so no need to do it here as well

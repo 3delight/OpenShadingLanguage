@@ -89,7 +89,7 @@ public:
 
     typedef std::map<std::string, llvm::Value*> AllocationMap;
 
-    void llvm_assign_initial_value (const Symbol& sym, bool force = false);
+    void llvm_assign_initial_value (const Symbol& sym);
     llvm::LLVMContext &llvm_context () const { return ll.context(); }
     AllocationMap &named_values () { return m_named_values; }
 

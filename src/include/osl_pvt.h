@@ -439,6 +439,7 @@ public:
           m_size(datatype.is_unsized_array() ? 0 : (int)datatype.simpletype().size()),
           m_symtype(symtype),
           m_has_derivs(false), m_const_initializer(false),
+          m_completely_connected(false),
           m_connected_down(false),
           m_initialized(false), m_lockgeom(false), m_allowconnect(true),
           m_renderer_output(false), m_readonly(false),
@@ -646,6 +647,9 @@ public:
         m_firstwrite = first;  m_lastwrite = last;
     }
 
+    bool completelyconnected () const { return m_completely_connected; }
+    void completelyconnected (bool c) { m_completely_connected = c; }
+
     bool initialized () const { return m_initialized; }
     void initialized (bool init) { m_initialized = init; }
 
@@ -703,6 +707,7 @@ protected:
     char m_symtype;             ///< Kind of symbol (param, local, etc.)
     unsigned m_has_derivs:1;    ///< Step to derivs (0 == has no derivs)
     unsigned m_const_initializer:1; ///< initializer is a constant expression
+    unsigned m_completely_connected:1; //< All components connected upstream
     unsigned m_connected_down:1;///< Connected to a later/downtream layer
     unsigned m_initialized:1;   ///< If a param, has it been initialized?
     unsigned m_lockgeom:1;      ///< Is the param not overridden by geom?

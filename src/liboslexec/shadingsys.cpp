@@ -2274,6 +2274,9 @@ ShadingSystemImpl::ConnectShaders (ShaderGroup& group,
 
     dstinst->add_connection (srcinstindex, srccon, dstcon);
     dstinst->instoverride(dstcon.param)->valuesource (Symbol::ConnectedVal);
+    if (dstcon.is_complete()) {
+        dstinst->instoverride(dstcon.param)->completelyconnected (true);
+    }
     srcinst->instoverride(srccon.param)->connected_down (true);
     srcinst->outgoing_connections (true);
 
