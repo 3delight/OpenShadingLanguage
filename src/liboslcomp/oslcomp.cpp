@@ -280,6 +280,15 @@ OSLCompilerImpl::read_compile_options (const std::vector<std::string> &options,
                                        std::vector<std::string> &defines,
                                        std::vector<std::string> &includepaths)
 {
+    std::string delight_osl = OIIO::Sysutil::this_program_path ();
+    if( delight_osl.size() )
+    {
+        delight_osl = OIIO::Filesystem::parent_path( delight_osl );
+        delight_osl = OIIO::Filesystem::parent_path( delight_osl );
+        delight_osl = delight_osl + "/osl";
+        includepaths.push_back( delight_osl );
+    }
+
     m_output_filename.clear ();
     m_preprocess_only = false;
     for (size_t i = 0;  i < options.size();  ++i) {
