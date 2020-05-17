@@ -259,7 +259,8 @@ public:
 
     /// Implementaiton of Simple assignment.  If arrayindex >= 0, in
     /// designates a particular array index to assign.
-    bool llvm_assign_impl (Symbol &Result, Symbol &Src, int arrayindex = -1,
+    bool llvm_assign_impl (Symbol &Result, Symbol &Src,
+                           int srcarrayindex = -1, int dstarrayindex = -1,
                            int srcomp = -1, int dstcomp = -1);
 
 

@@ -2781,7 +2781,8 @@ ShadingSystemImpl::decode_connected_param (string_view connectionname,
             return c;
         }
         c.arrayindex = index;
-        if (c.arrayindex >= c.type.arraylength()) {
+        if (c.arrayindex >= c.type.arraylength() &&
+            c.arrayindex >= inst->instoverride(c.param)->arraylen()) {
             errorf("ConnectShaders: cannot request array element %s from a %s",
                    connectionname, c.type);
             c.arrayindex = c.type.arraylength() - 1;  // clamp it

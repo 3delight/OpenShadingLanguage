@@ -993,7 +993,8 @@ BackendLLVM::llvm_test_nonzero (Symbol &val, bool test_derivs)
 
 bool
 BackendLLVM::llvm_assign_impl (Symbol &Result, Symbol &Src,
-                                    int arrayindex, int srccomp, int dstcomp)
+                               int srcarrayindex, int dstarrayindex,
+                               int srccomp, int dstcomp)
 {
     OSL_DASSERT (! Result.typespec().is_structure());
     OSL_DASSERT (! Src.typespec().is_structure());
@@ -1001,27 +1002,28 @@ BackendLLVM::llvm_assign_impl (Symbol &Result, Symbol &Src,
     const TypeSpec &result_t (Result.typespec());
     const TypeSpec &src_t (Src.typespec());
 
-    llvm::Value *arrind = arrayindex >= 0 ? ll.constant (arrayindex) : NULL;
+    llvm::Value *srcarrind = srcarrayindex >= 0 ? ll.constant (srcarrayindex) : NULL;
+    llvm::Value *dstarrind = dstarrayindex >= 0 ? ll.constant (dstarrayindex) : NULL;
 
     if (Result.typespec().is_closure() || Src.typespec().is_closure()) {
         if (Src.typespec().is_closure()) {
-            llvm::Value *srcval = llvm_load_value (Src, 0, arrind, 0);
-            llvm_store_value (srcval, Result, 0, arrind, 0);
+            llvm::Value *srcval = llvm_load_value (Src, 0, srcarrind, 0);
+            llvm_store_value (srcval, Result, 0, dstarrind, 0);
         } else {
             llvm::Value *null = ll.constant_ptr(NULL, ll.type_void_ptr());
-            llvm_store_value (null, Result, 0, arrind, 0);
+            llvm_store_value (null, Result, 0, dstarrind, 0);
         }
         return true;
     }
 
     if (Result.typespec().is_matrix() && Src.typespec().is_int_or_float()) {
         // Handle m=f, m=i separately
-        llvm::Value *src = llvm_load_value (Src, 0, arrind, 0, TypeDesc::FLOAT /*cast*/);
+        llvm::Value *src = llvm_load_value (Src, 0, srcarrind, 0, TypeDesc::FLOAT /*cast*/);
         // m=f sets the diagonal components to f, the others to zero
         llvm::Value *zero = ll.constant (0.0f);
         for (int i = 0;  i < 4;  ++i)
             for (int j = 0;  j < 4;  ++j)
-                llvm_store_value (i==j ? src : zero, Result, 0, arrind, i*4+j);
+                llvm_store_value (i==j ? src : zero, Result, 0, dstarrind, i*4+j);
         llvm_zero_derivs (Result);  // matrices don't have derivs currently
         return true;
     }
@@ -1030,7 +1032,7 @@ BackendLLVM::llvm_assign_impl (Symbol &Result, Symbol &Src,
     // it will only copy up to the length of the smaller one.  The compiler
     // will ensure they are the same size, except for certain cases where
     // the size difference is intended (by the optimizer).
-    if (result_t.is_array() && src_t.is_array() && arrayindex == -1) {
+    if (result_t.is_array() && src_t.is_array() && srcarrayindex == -1) {
         OSL_DASSERT (assignable(result_t.elementtype(), src_t.elementtype()));
         llvm::Value *resultptr = llvm_void_ptr (Result);
         llvm::Value *srcptr = llvm_void_ptr (Src);
@@ -1060,28 +1062,28 @@ BackendLLVM::llvm_assign_impl (Symbol &Result, Symbol &Src,
     else if (!singlechan) {
         for (int i = 0; i < num_components; ++i) {
             llvm::Value* src_val = Src.is_constant()
-                ? llvm_load_constant_value (Src, arrayindex, i, basetype)
-                : llvm_load_value (Src, 0, arrind, i, basetype);
+                ? llvm_load_constant_value (Src, srcarrayindex, i, basetype)
+                : llvm_load_value (Src, 0, srcarrind, i, basetype);
             if (!src_val)
                 return false;
-            llvm_store_value (src_val, Result, 0, arrind, i);
+            llvm_store_value (src_val, Result, 0, dstarrind, i);
         }
     } else {
         // connect individual component of an aggregate type
         // set srccomp to 0 for case when src is actually a float
         if (srccomp == -1) srccomp = 0;
         llvm::Value* src_val = Src.is_constant()
-            ? llvm_load_constant_value (Src, arrayindex, srccomp, basetype)
-            : llvm_load_value (Src, 0, arrind, srccomp, basetype);
+            ? llvm_load_constant_value (Src, srcarrayindex, srccomp, basetype)
+            : llvm_load_value (Src, 0, srcarrind, srccomp, basetype);
         if (!src_val)
             return false;
         // write source float into all compnents when dstcomp == -1, otherwise
         // the single element requested.
         if (dstcomp == -1) {
             for (int i = 0; i < num_components; ++i)
-                llvm_store_value (src_val, Result, 0, arrind, i);
+                llvm_store_value (src_val, Result, 0, dstarrind, i);
         } else
-            llvm_store_value (src_val, Result, 0, arrind, dstcomp);
+            llvm_store_value (src_val, Result, 0, dstarrind, dstcomp);
     }
 
     // Handle derivatives
@@ -1091,19 +1093,19 @@ BackendLLVM::llvm_assign_impl (Symbol &Result, Symbol &Src,
             if (!singlechan) {
                 for (int d = 1;  d <= 2;  ++d) {
                     for (int i = 0; i < num_components; ++i) {
-                        llvm::Value* val = llvm_load_value (Src, d, arrind, i);
-                        llvm_store_value (val, Result, d, arrind, i);
+                        llvm::Value* val = llvm_load_value (Src, d, srcarrind, i);
+                        llvm_store_value (val, Result, d, dstarrind, i);
                     }
                 }
             } else {
                 for (int d = 1;  d <= 2;  ++d) {
-                    llvm::Value* val = llvm_load_value (Src, d, arrind, srccomp);
+                    llvm::Value* val = llvm_load_value (Src, d, srcarrind, srccomp);
                     if (dstcomp == -1) {
                         for (int i = 0; i < num_components; ++i)
-                            llvm_store_value (val, Result, d, arrind, i);
+                            llvm_store_value (val, Result, d, dstarrind, i);
                     }
                     else
-                        llvm_store_value (val, Result, d, arrind, dstcomp);
+                        llvm_store_value (val, Result, d, dstarrind, dstcomp);
                 }
             }
         } else {

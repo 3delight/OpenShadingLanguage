@@ -959,8 +959,9 @@ BackendLLVM::build_llvm_instance (bool groupentry)
         for (int c = 0, Nc = child->nconnections();  c < Nc;  ++c) {
             const Connection &con (child->connection (c));
             if (con.srclayer == this->layer()) {
-                OSL_ASSERT (con.src.arrayindex == -1 && con.dst.arrayindex == -1 &&
-                            "no support for individual array element connections");
+                OSL_ASSERT (((con.src.arrayindex == -1 && con.src.type.is_array()) ==
+                             (con.dst.arrayindex == -1 && con.dst.type.is_array())) &&
+                            "no support for connecting array to/from single element");
                 // Validate unsupported connection vecSrc -> vecDst[j]
                 OSL_ASSERT ((con.dst.channel == -1 ||
                              con.src.type.aggregate() == TypeDesc::SCALAR ||
@@ -976,7 +977,8 @@ BackendLLVM::build_llvm_instance (bool groupentry)
 
                 // FIXME -- I'm not sure I understand this.  Isn't this
                 // unnecessary if we wrote to the parameter ourself?
-                llvm_assign_impl (*dstsym, *srcsym, -1,
+                llvm_assign_impl (*dstsym, *srcsym,
+                                  con.src.arrayindex, con.dst.arrayindex,
                                   con.src.channel, con.dst.channel);
             }
         }
