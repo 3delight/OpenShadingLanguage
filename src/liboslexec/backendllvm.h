@@ -451,6 +451,9 @@ public:
     /// entry in the groupdata struct.
     int find_userdata_index (const Symbol& sym);
 
+	/// Lookup external functions needed by JITed shader code.
+	static void * helper_function_lookup (const std::string &name);
+
     LLVM_Util ll;
 
 private:

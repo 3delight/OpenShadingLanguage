@@ -167,10 +167,20 @@ initialize_llvm_helper_function_map ()
 }
 
 
+#ifdef __linux__
+#	include <dlfcn.h>
+#endif
 
 void *
-helper_function_lookup (const std::string &name)
+BackendLLVM::helper_function_lookup (const std::string &name)
 {
+#ifdef __linux__
+	/* This is a patch to find libstdc++ symbols when the binary is not linked
+	   with libstdc++.so (ie. python). */
+	void *s = dlsym( RTLD_DEFAULT, name.c_str() );
+	if( s )
+		return s;
+#endif
     HelperFuncMap::const_iterator i = llvm_helper_function_map.find (name);
     if (i == llvm_helper_function_map.end())
         return NULL;

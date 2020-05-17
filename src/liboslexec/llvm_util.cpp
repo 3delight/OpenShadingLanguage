@@ -34,6 +34,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <OSL/oslconfig.h>
 #include <OSL/llvm_util.h>
+#include "backendllvm.h"
 
 #if OSL_LLVM_VERSION < 60
 #error "LLVM minimum version required for OSL is 6.0"
@@ -219,6 +220,14 @@ public:
     }
 
     virtual uint64_t getSymbolAddress(const std::string &Name) {
+#ifdef __APPLE__
+		void *f = BackendLLVM::helper_function_lookup(Name.substr(1));
+#else
+		void *f = BackendLLVM::helper_function_lookup(Name);
+#endif
+		if( f )
+			return (uint64_t)f;
+
         return mm->getSymbolAddress (Name);
     }
     virtual bool finalizeMemory(std::string *ErrMsg = 0) {
