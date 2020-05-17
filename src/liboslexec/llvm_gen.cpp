@@ -3218,6 +3218,13 @@ LLVMGEN (llvm_gen_spline)
 }
 
 
+static bool compatible_array(const TypeDesc &arg, const TypeDesc &param)
+{
+    return arg.basetype == param.basetype &&
+        arg.aggregate == param.aggregate &&
+        arg.is_array() && param.is_array() &&
+        arg.arraylen <= param.arraylen;
+}
 
 static void
 llvm_gen_keyword_fill(BackendLLVM &rop, Opcode &op, const ClosureRegistry::ClosureEntry *clentry, ustring clname, llvm::Value *mem_void_ptr, int argsoffset)
@@ -3241,12 +3248,13 @@ llvm_gen_keyword_fill(BackendLLVM &rop, Opcode &op, const ClosureRegistry::Closu
             const ClosureParam &p = clentry->params[clentry->nformal + t];
             // strcmp might be too much, we could precompute the ustring for the param,
             // but in this part of the code is not a big deal
-            if (equivalent(p.type,ValueType) && !strcmp(key->c_str(), p.key)) {
+            if ((equivalent(p.type,ValueType) || compatible_array(ValueType, p.type))
+                 && !strcmp(key->c_str(), p.key)) {
             	// store data
             	OSL_DASSERT(p.offset + p.field_size <= clentry->struct_size);
                 llvm::Value* dst = rop.ll.offset_ptr (mem_void_ptr, p.offset);
                 llvm::Value* src = rop.llvm_void_ptr (Value);
-                rop.ll.op_memcpy (dst, src, (int)p.type.size(),
+                rop.ll.op_memcpy (dst, src, (int)ValueType.size(),
                 					4 /* use 4 byte alignment for now */);
                 legal = true;
                 break;
@@ -3339,10 +3347,10 @@ LLVMGEN (llvm_gen_closure)
             rop.ll.op_memcpy (dst, src, 8, 8);
         }
         else if (!sym.typespec().is_closure_array() && !sym.typespec().is_structure()
-                 && equivalent(t,p.type)) {
+                 && (equivalent(t,p.type) || compatible_array(t,p.type))) {
             llvm::Value* dst = rop.ll.offset_ptr (mem_void_ptr, p.offset);
             llvm::Value* src = rop.llvm_void_ptr (sym);
-            rop.ll.op_memcpy (dst, src, (int)p.type.size(),
+            rop.ll.op_memcpy (dst, src, (int)t.size(),
                              4 /* use 4 byte alignment for now */);
         } else {
             rop.shadingcontext()->errorf("Incompatible formal argument %d to '%s' closure (%s %s, expected %s). Prototypes don't match renderer registry (%s:%d).",
